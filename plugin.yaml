@@ -1,11 +1,11 @@
 # Metadata for the plugin
 plugin:
     # Global plugin attributes
-    type: unknown                   # plugin type (gateway, interface, protocol, system, web)
+    type: protocol                   # plugin type (gateway, interface, protocol, system, web)
     description:
-        de: 'Beispiel Plugin für SmartHomeNG v1.5 und höher'
-        en: 'Sample plugin for SmartHomeNG v1.5 and up'
-    maintainer: <autor>
+        de: 'Plugin, um über SIP ein Telefon klingeln zu lassen'
+        en: 'Plugin to call a SIP phone and immediately hanging up.'
+    maintainer: Sisamiwe
 #    tester:                        # Who tests this plugin?
     state: develop                  # change to ready when done with development
 #    keywords: iot xyz
@@ -13,7 +13,7 @@ plugin:
 #    support: https://knx-user-forum.de/forum/supportforen/smarthome-py
 
     version: 1.0.0                  # Plugin version (must match the version specified in __init__.py)
-    sh_minversion: 1.8              # minimum shNG version to use this plugin
+    sh_minversion: 1.9              # minimum shNG version to use this plugin
 #    sh_maxversion:                 # maximum shNG version to use this plugin (leave empty if latest)
 #    py_minversion: 3.6             # minimum Python version to use for this plugin
 #    py_maxversion:                 # maximum Python version to use for this plugin (leave empty if latest)
