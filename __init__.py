@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 # vim: set encoding=utf-8 tabstop=4 softtabstop=4 shiftwidth=4 expandtab
 #########################################################################
-#  Copyright 2020-      <AUTHOR>                                  <EMAIL>
+#  Copyright 2023 -      Michael Wenzel             wenzel_michael@web.de
 #########################################################################
 #  This file is part of SmartHomeNG.
 #  https://www.smarthomeNG.de
 #  https://knx-user-forum.de/forum/supportforen/smarthome-py
-#
-#  Sample plugin for new plugins to run with SmartHomeNG version 1.8 and
-#  upwards.
 #
 #  SmartHomeNG is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -31,6 +28,8 @@ from lib.item import Items
 from .webif import WebInterface
 from .femtosip import femtosip
 
+DEFAULT_RING_TIME = 15
+
 
 class SipCall(SmartPlugin):
     """
@@ -42,19 +41,11 @@ class SipCall(SmartPlugin):
     are already available!
     """
 
-    PLUGIN_VERSION = '1.0.0'    # (must match the version specified in plugin.yaml), use '1.0.0' for your initial plugin Release
+    PLUGIN_VERSION = '1.0.0'
 
     def __init__(self, sh):
         """
         Initializes the plugin.
-
-        If you need the sh object at all, use the method self.get_sh() to get it. There should be almost no need for
-        a reference to the sh object any more.
-
-        Plugins have to use the new way of getting parameter values:
-        use the SmartPlugin method get_parameter_value(parameter_name). Anywhere within the Plugin you can get
-        the configured (and checked) value for a parameter by calling self.get_parameter_value(parameter_name). It
-        returns the value in the datatype that is defined in the metadata.
         """
 
         # Call init code of parent class (SmartPlugin)
@@ -75,7 +66,7 @@ class SipCall(SmartPlugin):
 
         self.alive = False
 
-        # Initialization code goes here
+        # Init SIP Client
         self.sip = femtosip.SIP(self.user, self.password, self.gateway, self.port, self.display_name)
 
         # Init webinterface
@@ -94,7 +85,6 @@ class SipCall(SmartPlugin):
         Stop method for the plugin
         """
         self.logger.debug("Stop method called")
-        self.scheduler_remove('poll_device')
         self.alive = False
 
     def parse_item(self, item):
@@ -116,14 +106,6 @@ class SipCall(SmartPlugin):
             self._itemlist.append(item)
             return self.update_item
 
-    def parse_logic(self, logic):
-        """
-        Default plugin parse_logic method
-        """
-        if 'xxx' in logic.conf:
-            # self.function(logic['name'])
-            pass
-
     def update_item(self, item, caller=None, source=None, dest=None):
         """
         Item has been updated
@@ -137,50 +119,15 @@ class SipCall(SmartPlugin):
         :param source: if given it represents the source
         :param dest: if given it represents the dest
         """
-        if self.alive and caller != self.get_shortname():
-            # code to execute if the plugin is not stopped and only, if the item has not been changed by this plugin:
-            self.logger.info(f"Update item: {item.property.path}, item has been changed outside this plugin")
+        if self.alive and caller != self.get_shortname() and bool(item()):
+            self.logger.info(f"Update item: {item.property.path}, item has been changed outside this plugin from caller {caller}, source {source} and dest {dest}")
 
-            if self.has_iattr(item.conf, 'sipcall_extension'):
-                self.logger.debug(f"update_item was called with item {item.property.path} from caller {caller}, source {source} and dest {dest}")
-
-                sipcall_extension = self.get_iattr_value(item.conf, 'sipcall_extension')
-                if self.has_iattr(item.conf, 'sipcall_ring_time'):
-                    sipcall_ring_time = self.get_iattr_value(item.conf, 'sipcall_ring_time')
-                else:
-                    sipcall_ring_time = 10
-
-                if bool(item()):
-                    self.sip_call(sipcall_extension, sipcall_ring_time)
+            _extension = str(self.get_iattr_value(item.conf, 'sipcall_extension'))
+            _ring_time = self.get_iattr_value(item.conf, 'sipcall_ring_time')
+            _ring_time = DEFAULT_RING_TIME if not _ring_time else _ring_time
+            call = self.sip_call(_extension, _ring_time)
+            self.logger.debug(f"{call=}")
             pass
 
-    def poll_device(self):
-        """
-        Polls for updates of the device
-
-        This method is only needed, if the device (hardware/interface) does not propagate
-        changes on it's own, but has to be polled to get the actual status.
-        It is called by the scheduler which is set within run() method.
-        """
-        # # get the value from the device
-        # device_value = ...
-        #
-        # # find the item(s) to update:
-        # for item in self.sh.find_items('...'):
-        #
-        #     # update the item by calling item(value, caller, source=None, dest=None)
-        #     # - value and caller must be specified, source and dest are optional
-        #     #
-        #     # The simple case:
-        #     item(device_value, self.get_shortname())
-        #     # if the plugin is a gateway plugin which may receive updates from several external sources,
-        #     # the source should be included when updating the the value:
-        #     item(device_value, self.get_shortname(), source=device_source_id)
-        pass
-
-    def sip_call(self, call, delay):
-
-        if isinstance(call, int):
-            call = str(call)
-
-        self.sip.call(call, delay)
+    def sip_call(self, remote_id, ring_time=DEFAULT_RING_TIME, timeout=1.0):
+        return self.sip.call(remote_id, ring_time, timeout)

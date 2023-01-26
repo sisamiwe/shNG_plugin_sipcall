@@ -31,7 +31,8 @@ parameters:
             en: 'SIP User Name'
 
     sip_user_password:
-        type: hide-str
+        type: str
+        hide: true
         mandatory: true
         description:
             de: 'SIP User Passwort'
@@ -53,7 +54,7 @@ parameters:
 
     display_name:
         type: str
-        default: ''
+        default: None
         description:
             de: 'Anzeige im Display, falls unterschiedlich zum SIP Login'
             en: 'Set the display name, if different from SIP login'

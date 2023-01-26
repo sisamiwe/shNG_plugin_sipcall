@@ -21,16 +21,17 @@ import hashlib
 import socket
 import select
 import random
-import re
 import time
 import logging
 
 # Create the logger
 logger = logging.getLogger('femtosip')
 
+
 ###############################################################################
 # Helper functions                                                            #
 ###############################################################################
+
 
 def format_sip_header_field(key):
     """
@@ -137,7 +138,7 @@ def parse_digest(data):
         elif status == ST_COMMA:
             if (not token[0]) or (token[1] != ","):
                 return None
-        status = max(1, (status + 1) % 5) # Wrap around back to ST_KEY
+        status = max(1, (status + 1) % 5)  # Wrap around back to ST_KEY
     return fields
 
 
@@ -347,11 +348,11 @@ class SIP:
 
     ALLOW = 'INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO'
 
-    def __init__(self, user, password, gateway, port, display_name=None, local_ip = None, protocol = "tcp"):
+    def __init__(self, user, password, gateway, port, display_name=None, local_ip=None, protocol="tcp"):
         # Copy the parameters
         self.user = user
         self.password = password
-        self.local_ip, self.local_port = local_ip, None # Allow IP to be specified. Enables use on WAN.
+        self.local_ip, self.local_port = local_ip, None  # Allow IP to be specified. Enables use on WAN.
         self.gateway = gateway
         self.port = port
         self.display_name = display_name
@@ -360,10 +361,12 @@ class SIP:
         # Create the response parser instance
         self.response_parser = ResponseParser()
 
-        # Initilise the session parameters
+        # Initialise the session parameters
         self.seq = 0
         self.session_id = self.make_random_digits(4)
         self.session_version = self.make_random_digits(4)
+        
+        logger.debug('SIP Client init successful')
 
     @staticmethod
     def make_sip_packet(method, uri, fields, data=b''):
@@ -379,10 +382,9 @@ class SIP:
         uri: is the request URI that will be appended to the method. Will be 
              converted to ascii.
         fields: is a dict containing the header fields as key-value pairs.
-        data: is optional payload data. Must by a bytes object.
+        data: is optional payload data. Must be a bytes object.
         """
-        res = (method.upper().encode('ascii') + b' ' +
-             uri.encode('ascii') + b' SIP/2.0\r\n')
+        res = (method.upper().encode('ascii') + b' ' + uri.encode('ascii') + b' SIP/2.0\r\n')
         for key, value in fields.items():
             res += format_sip_header_field(key).encode('ascii') + b': ' + value.encode('utf-8') + b'\r\n'
         res += b'Content-Length: ' + str(len(data)).encode('ascii') + b'\r\n\r\n'
@@ -407,9 +409,7 @@ class SIP:
 
         return from_field
 
-    def make_invite_sip_packet(self,
-            remote_id, remote_host,
-            branch, tag, call_id, seq, realm=None, nonce=None):
+    def make_invite_sip_packet(self, remote_id, remote_host, branch, tag, call_id, seq, realm=None, nonce=None):
         # Assemble the request uri
         uri = 'sip:' + remote_id + '@' + remote_host
 
@@ -442,7 +442,6 @@ class SIP:
                       "algorithm=\"MD5\"")
 
         return self.make_sip_packet('INVITE', uri, fields)
-
 
     def make_cancel_sip_packet(self, remote_id, remote_host, branch, tag, call_id, seq):
         # Assemble the request uri
@@ -491,7 +490,7 @@ class SIP:
             sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
         else:
             raise Exception('Unsupported protocol.')
-        sock.connect((self.gateway,self.port))
+        sock.connect((self.gateway, self.port))
         if self.local_ip:
             self.local_port = sock.getsockname()[1]
         else:
@@ -501,6 +500,8 @@ class SIP:
         return sock
 
     def call(self, remote_id, delay=15.0, timeout=1.0):
+        logger.debug(f'SIP call to remote_id={remote_id} with delay={delay} will be executed')
+
         # Generate a call_id and increase the sequence number
         self.seq += 1
         tag = self.make_random_digits()
@@ -524,8 +525,7 @@ class SIP:
 
         # Function advancing the state machine
         def handle_response(res):
-            logger.info('response: ' + res.protocol + ' ' +
-                        str(res.code) + ' ' + res.message)
+            logger.info(f"response: {res.protocol} ({res.code}) {res.message}")
 
             # Handle the individual response codes
             if res.code == 401:
@@ -538,7 +538,7 @@ class SIP:
                     return
 
                 # Read realm and nonce
-                if not 'WWW-Authenticate' in res.fields:
+                if 'WWW-Authenticate' not in res.fields:
                     error('Did not find "WWW-Authenticate" field')
                     return
                 auth = str(res.fields['WWW-Authenticate'], 'ascii')
@@ -556,12 +556,12 @@ class SIP:
                 # Ignore this response, everything is fine
                 pass
             elif res.code == 183 or res.code == 180:
-                if not 'From' in res.fields:
+                if 'From' not in res.fields:
                     error('Did not find "To" field')
                     return
-                state['status'] = 'delay' # Phones are ringing, wait
+                state['status'] = 'delay'  # Phones are ringing, wait
                 state['delay_start'] = time.time()
-            elif res.code == 603: # Decline
+            elif res.code == 603:  # Decline
                 state['done'] = True
             elif res.code == 200:
                 if state['status'] == 'delay':
@@ -647,28 +647,17 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(
-        description='A microscopic SIP client that can be used to ring a ' + 
-                    'phone.')
-    parser.add_argument('--gateway', required=True,
-        help='Hostname or IP address of the SIP server')
-    parser.add_argument('--port', default=5060, type=int,
-        help='Port of the SIP server (default 5060)')
-    parser.add_argument('--user', required=True,
-        help='Username used for authentication at the SIP server')
-    parser.add_argument('--password', default='',
-        help='Password used in conjunction with the user for authentication ' +
-             'at the SIP server. (default '')')
-    parser.add_argument('--displayname', default=None,
-        help='Alter the displayed caller name. (defaults to SIP configuration)')
+        description='A microscopic SIP client that can be used to ring a phone.')
+    parser.add_argument('--gateway', required=True, help='Hostname or IP address of the SIP server')
+    parser.add_argument('--port', default=5060, type=int, help='Port of the SIP server (default 5060)')
+    parser.add_argument('--user', required=True, help='Username used for authentication at the SIP server')
+    parser.add_argument('--password', default='', help='Password used in conjunction with the user for authentication at the SIP server. (default '')')
+    parser.add_argument('--displayname', default=None, help='Alter the displayed caller name. (defaults to SIP configuration)')
     parser.add_argument('--localip', default=None)
-    parser.add_argument('--protocol', default="tcp", 
-        help='supported protocols: IPv4: udp/tcp, IPv6: udp6/tcp6')
-    parser.add_argument('--call', required=True,
-        help='Phone number of the endpoint that will be called')
-    parser.add_argument('--delay', default=15.0, type=float,
-        help='Pause in seconds until the call is canceled (default 15.0)')
-    parser.add_argument('--timeout', default=1.0, type=float,
-        help='Period in seconds the SIP server must respond within (default 1.0)')
+    parser.add_argument('--protocol', default="tcp", help='supported protocols: IPv4: udp/tcp, IPv6: udp6/tcp6')
+    parser.add_argument('--call', required=True, help='Phone number of the endpoint that will be called')
+    parser.add_argument('--delay', default=15.0, type=float, help='Pause in seconds until the call is canceled (default 15.0)')
+    parser.add_argument('--timeout', default=1.0, type=float, help='Period in seconds the SIP server must respond within (default 1.0)')
 
     args = parser.parse_args()
 
