@@ -1,28 +1,8 @@
 {% extends "base_plugin.html" %}
-
 {% set logo_frame = false %}
-
-<!-- set update_interval to a value > 0 (in milliseconds) to enable periodic data updates -->
 {% set update_interval = 5000 %}
-
-
 {% set dataSet = 'item_info' %}
 
-<!-- set update_params if you need to provide additional parameters for the auto-update function
-{% set update_params = item_id %}
--->
-<!-- if you don't need any buttons in the header, disable them completely
-{% set buttons = false %}
--->
-<!-- if you don't need any auto-refresh elements in the header, disable them
-{% set autorefresh_buttons = false %}
--->
-<!-- if you don't need the reload_button in the header, disable it
-{% set reload_button = false %}
--->
-<!-- if you don't need the close in the header, disable it
-{% set close_button = false %}
--->
 
 <!--
 	Additional styles go into this block. Examples are for datatables
@@ -83,7 +63,6 @@
       }
       try {
          table = $('#maintable').DataTable( {
-            columnDefs: [{ "targets": [2], "className": "value"}].concat($.fn.dataTable.defaults.columnDefs),
           pageLength: webif_pagelength,
           pageResize: resize});
       }
