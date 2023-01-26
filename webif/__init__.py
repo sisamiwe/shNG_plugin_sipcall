@@ -58,7 +58,6 @@ class WebInterface(SmartPluginWebIf):
         self.webif_dir = webif_dir
         self.plugin = plugin
         self.items = Items.get_instance()
-
         self.tplenv = self.init_template_environment()
 
     @cherrypy.expose
@@ -107,8 +106,6 @@ class WebInterface(SmartPluginWebIf):
                 self.logger.debug(f"Plugin item {item}")
 
             # return it as json to the web page
-            self.logger.debug(f"Plugin data {data}")
-
             try:
                 return json.dumps(data, default=str)
             except Exception as e:
@@ -124,10 +121,6 @@ class WebInterface(SmartPluginWebIf):
         :param dataSet: Dataset for which the data should be returned (standard: None)
         :return: dict with the data needed to update the web page.
         """
-        # if dataSets are used, define them here
-
-        self.logger.debug(f"get_data_html called for dataSet={dataSet}")
-
         if dataSet == 'overview':
             # get the new data from the plugin variable called _webdata
             data = self.plugin._webdata
@@ -136,7 +129,6 @@ class WebInterface(SmartPluginWebIf):
                 return data
             except Exception as e:
                 self.logger.error(f"get_data_html exception: {e}")
-
         else:
             self.logger.debug(f"Create WebIF Update data for {dataSet}")
             # get the new data
@@ -146,9 +138,6 @@ class WebInterface(SmartPluginWebIf):
                 item_info[item.id()]['value'] = item()
                 item_info[item.id()]['last_update'] = item.property.last_update.strftime('%d.%m.%Y %H:%M:%S')
                 item_info[item.id()]['last_change'] = item.property.last_change.strftime('%d.%m.%Y %H:%M:%S')
-
-            self.logger.debug(f"WebIF Update data: {item_info}")
-
 
             # return it as json to the web page
             try:
