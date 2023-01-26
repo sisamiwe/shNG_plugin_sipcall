@@ -125,9 +125,9 @@ class SipCall(SmartPlugin):
             _extension = str(self.get_iattr_value(item.conf, 'sipcall_extension'))
             _ring_time = self.get_iattr_value(item.conf, 'sipcall_ring_time')
             _ring_time = DEFAULT_RING_TIME if not _ring_time else _ring_time
-            call = self.sip_call(_extension, _ring_time)
-            self.logger.debug(f"{call=}")
+            self.logger.debug(f"{_extension=}, {_ring_time=}")
+            self.sip_call(_extension, _ring_time)
             pass
 
     def sip_call(self, remote_id, ring_time=DEFAULT_RING_TIME, timeout=1.0):
-        return self.sip.call(remote_id, ring_time, timeout)
+        self.sip.call(remote_id, ring_time, timeout)

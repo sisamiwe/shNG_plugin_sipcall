@@ -91,7 +91,7 @@ item_attributes:
         type: int
         default: 10
         description:
-            de: Dauer des Klingels bis zum Abbruch
+            de: Dauer des Klingels
             en: Duration of ringing
 
 item_structs: NONE
